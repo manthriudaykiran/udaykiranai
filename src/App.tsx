@@ -1,10 +1,9 @@
 /**
- * AI FREEDOM WITH UDAY - Application Root & Multi-Experience Router
- * Seamlessly routes between:
+ * AI FREEDOM WITH UDAY - Application Root & Router
+ * Routes between:
  * 1. Public Website & Free AI Starter Kit Funnel (/)
  * 2. Private Admin Dashboard (/admin)
  * 3. Private Admin Login (/admin/login)
- * 4. Brand Design System Showcase (/design-system - Preserved V1)
  * 
  * Strict Admin Authentication:
  * Real Supabase Auth + Server-Verified is_admin() RPC.
@@ -16,43 +15,14 @@ import { PublicLandingPage } from './components/PublicLandingPage';
 import { AdminLogin } from './components/AdminLogin';
 import { AdminDashboard } from './components/AdminDashboard';
 import { verifyAdminSession, adminLogout, supabase, AdminSession } from './lib/supabase';
+import { Lock, Loader2 } from 'lucide-react';
 
-// Preserved V1 Brand Design System Showcase Imports
-import { BrandWordmark } from './design-system/components/BrandWordmark';
-import { ColorPaletteInspector } from './design-system/components/ColorPaletteInspector';
-import { GradientStudio } from './design-system/components/GradientStudio';
-import { ThemeSwitcherPreview } from './design-system/components/ThemeSwitcherPreview';
-import { TypographyTester } from './design-system/components/TypographyTester';
-import { GlassmorphismPlayground } from './design-system/components/GlassmorphismPlayground';
-import { MotionShowcase } from './design-system/components/MotionShowcase';
-import { PresentationStudio } from './design-system/components/PresentationStudio';
-import { SocialMediaStudio } from './design-system/components/SocialMediaStudio';
-import { DashboardShowcase } from './design-system/components/DashboardShowcase';
-import { TokensExportModal } from './design-system/components/TokensExportModal';
-import {
-  Code,
-  Tv,
-  Palette,
-  Sparkles,
-  Layers,
-  Type,
-  Sliders,
-  Play,
-  Share2,
-  Lock,
-  Loader2,
-} from 'lucide-react';
-
-type Route = 'public' | 'admin-login' | 'admin' | 'design-system';
+type Route = 'public' | 'admin-login' | 'admin';
 
 export default function App() {
   const [currentRoute, setCurrentRoute] = useState<Route>('public');
   const [adminSession, setAdminSessionState] = useState<AdminSession | null>(null);
   const [isVerifyingAdmin, setIsVerifyingAdmin] = useState<boolean>(false);
-  const [designSystemTab, setDesignSystemTab] = useState<
-    'palette' | 'gradients' | 'themes' | 'typography' | 'surfaces' | 'motion' | 'presentation' | 'social' | 'console' | 'guidelines'
-  >('presentation');
-  const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
 
   // Synchronize route and verify authentication
   useEffect(() => {
@@ -83,10 +53,15 @@ export default function App() {
           }
         }
         setIsVerifyingAdmin(false);
-      } else if (path.startsWith('/design-system')) {
-        setCurrentRoute('design-system');
-        setIsVerifyingAdmin(false);
       } else {
+        // Any other path defaults directly to the public landing page
+        if (path !== '/') {
+          try {
+            window.history.replaceState({}, '', '/');
+          } catch {
+            // ignore
+          }
+        }
         setCurrentRoute('public');
         setIsVerifyingAdmin(false);
       }
@@ -179,137 +154,6 @@ export default function App() {
             onNavigateHome={() => navigateTo('public', '/')}
           />
         )
-      )}
-
-      {/* ROUTE 4: PRESERVED V1 BRAND DESIGN SYSTEM SHOWCASE (/design-system) */}
-      {currentRoute === 'design-system' && (
-        <div className="flex-1 flex flex-col">
-          <header className="sticky top-0 z-40 bg-[#071426]/90 backdrop-blur-xl border-b border-white/10 px-6 lg:px-12 py-4 flex items-center justify-between gap-8">
-            <button
-              onClick={() => navigateTo('public', '/')}
-              className="text-left hover:opacity-85 transition-opacity"
-              title="Return to Public Website"
-            >
-              <BrandWordmark brand="personal" size="md" />
-            </button>
-
-            <nav className="hidden lg:flex items-center gap-6 text-xs font-manrope font-medium text-slate-300">
-              <button
-                onClick={() => setDesignSystemTab('presentation')}
-                className={`transition-colors whitespace-nowrap shrink-0 ${
-                  designSystemTab === 'presentation' ? 'text-[#FFA726] font-semibold' : 'hover:text-white'
-                }`}
-              >
-                Presentation Deck
-              </button>
-              <button
-                onClick={() => setDesignSystemTab('palette')}
-                className={`transition-colors whitespace-nowrap shrink-0 ${
-                  designSystemTab === 'palette' ? 'text-[#FFA726] font-semibold' : 'hover:text-white'
-                }`}
-              >
-                Colors & Tokens
-              </button>
-              <button
-                onClick={() => setDesignSystemTab('gradients')}
-                className={`transition-colors whitespace-nowrap shrink-0 ${
-                  designSystemTab === 'gradients' ? 'text-[#FFA726] font-semibold' : 'hover:text-white'
-                }`}
-              >
-                Gradients
-              </button>
-              <button
-                onClick={() => setDesignSystemTab('themes')}
-                className={`transition-colors whitespace-nowrap shrink-0 ${
-                  designSystemTab === 'themes' ? 'text-[#FFA726] font-semibold' : 'hover:text-white'
-                }`}
-              >
-                6 Themes
-              </button>
-              <button
-                onClick={() => setDesignSystemTab('console')}
-                className={`transition-colors whitespace-nowrap shrink-0 ${
-                  designSystemTab === 'console' ? 'text-[#FFA726] font-semibold' : 'hover:text-white'
-                }`}
-              >
-                KiranForge Console
-              </button>
-            </nav>
-
-            <div className="flex items-center gap-3 shrink-0">
-              <button
-                onClick={() => setIsExportModalOpen(true)}
-                className="px-4 py-2 text-xs font-display font-semibold text-white bg-gradient-to-r from-[#FFA726] via-[#FB6A21] to-[#D946EF] rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95 flex items-center gap-1.5 whitespace-nowrap shrink-0"
-              >
-                <Code className="w-3.5 h-3.5" />
-                <span>Export Tokens</span>
-              </button>
-            </div>
-          </header>
-
-          {/* V1 Hero */}
-          <section className="relative px-6 lg:px-12 pt-12 pb-8 overflow-hidden border-b border-white/10">
-            <div className="max-w-5xl mx-auto space-y-4">
-              <h1 className="text-3xl sm:text-5xl font-display font-extrabold text-white tracking-tight">
-                Uday Kiran Brand System · <span className="text-[#FFA726]">Design Tokens</span>
-              </h1>
-              <p className="text-sm text-slate-300 max-w-2xl leading-relaxed">
-                Canonical color tokens, 8 signature gradients, 6 themes, motion tokens, and presentation/social engines.
-              </p>
-            </div>
-          </section>
-
-          {/* V1 Nav Tabs */}
-          <section className="px-6 lg:px-12 py-3 bg-[#050D1A] border-b border-white/10 sticky top-[65px] z-30 overflow-x-auto">
-            <div className="max-w-6xl mx-auto flex items-center gap-1.5 min-w-max">
-              {[
-                { id: 'presentation', label: '16:9 Presentation Deck', icon: Tv },
-                { id: 'palette', label: 'Canonical Colors', icon: Palette },
-                { id: 'gradients', label: 'Signature Gradients', icon: Sparkles },
-                { id: 'themes', label: '6 Signature Themes', icon: Layers },
-                { id: 'typography', label: 'Typography & Telugu', icon: Type },
-                { id: 'surfaces', label: 'Glassmorphism', icon: Sliders },
-                { id: 'motion', label: '15 Motion Tokens', icon: Play },
-                { id: 'social', label: 'Social Media Studio', icon: Share2 },
-                { id: 'console', label: 'KiranForge Console', icon: Code },
-              ].map((tab) => {
-                const Icon = tab.icon;
-                const isActive = designSystemTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setDesignSystemTab(tab.id as any)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-display font-medium flex items-center gap-1.5 transition-all whitespace-nowrap shrink-0 ${
-                      isActive
-                        ? 'bg-gradient-to-r from-[#FFA726] to-[#FB6A21] text-white shadow-md font-semibold'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-
-          <main className="flex-1 px-6 lg:px-12 py-8 max-w-6xl mx-auto w-full">
-            {designSystemTab === 'presentation' && <PresentationStudio />}
-            {designSystemTab === 'palette' && <ColorPaletteInspector />}
-            {designSystemTab === 'gradients' && <GradientStudio />}
-            {designSystemTab === 'themes' && <ThemeSwitcherPreview />}
-            {designSystemTab === 'typography' && <TypographyTester />}
-            {designSystemTab === 'surfaces' && <GlassmorphismPlayground />}
-            {designSystemTab === 'motion' && <MotionShowcase />}
-            {designSystemTab === 'social' && <SocialMediaStudio />}
-            {designSystemTab === 'console' && <DashboardShowcase />}
-          </main>
-
-          <TokensExportModal
-            isOpen={isExportModalOpen}
-            onClose={() => setIsExportModalOpen(false)}
-          />
-        </div>
       )}
     </div>
   );
