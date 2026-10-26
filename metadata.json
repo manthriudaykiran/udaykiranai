@@ -2,5 +2,7 @@
   "name": "Uday Kiran | Premium Brand Design System",
   "description": "Permanent, reusable, cinematic brand design system for Uday Kiran, Practical AI, and KiranForge. Features canonical color tokens, 8 signature gradients, 6 themes, motion tokens, and presentation/social templates.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
