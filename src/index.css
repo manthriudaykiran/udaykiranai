@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* Brand Primary Colors */
+    --color-amber: #FFA726;
+    --color-orange: #FB6A21;
+    --color-coral: #FF4D6D;
+    --color-magenta: #D946EF;
+    --color-violet: #7C3AED;
+
+    /* Brand Secondary Colors */
+    --color-gold: #FFD166;
+    --color-peach: #FFB3A7;
+    --color-lavender: #B794F6;
+    --color-indigo: #6366F1;
+    --color-sky: #38BDF8;
+
+    /* Brand Accent Colors */
+    --color-neon-coral: #FF006E;
+    --color-sunrise-gold: #F59E0B;
+    --color-bright-lilac: #A855F7;
+    --color-aqua-cyan: #22D3EE;
+    --color-lime-glow: #A3E635;
+
+    /* Brand Neutrals */
+    --color-midnight-navy: #071426;
+    --color-deep-plum: #1B1035;
+    --color-charcoal-slate: #111827;
+    --color-soft-white: #F6F9FC;
+    --color-pure-white: #FFFFFF;
+    --color-champagne-gold: #D5B46B;
+
+    /* Signature Gradients */
+    --grad-sunrise-flow: linear-gradient(135deg, #FFD166 0%, #FFA726 30%, #FB6A21 65%, #FF4D6D 100%);
+    --grad-magenta-flame: linear-gradient(135deg, #FF4D6D 0%, #FF006E 45%, #D946EF 100%);
+    --grad-violet-energy: linear-gradient(135deg, #D946EF 0%, #A855F7 45%, #7C3AED 100%);
+    --grad-amber-to-purple: linear-gradient(120deg, #FFA726 0%, #FB6A21 30%, #D946EF 65%, #7C3AED 100%);
+    --grad-coral-dream: linear-gradient(135deg, #FF4D6D 0%, #FFB3A7 55%, #FFD166 100%);
+    --grad-royal-glow: linear-gradient(135deg, #6366F1 0%, #7C3AED 45%, #22D3EE 100%);
+    --grad-cinematic-midnight: linear-gradient(135deg, #071426 0%, #1B1035 55%, #4C1D95 100%);
+    --grad-golden-horizon: linear-gradient(120deg, #FFD166 0%, #FFA726 35%, #FB6A21 70%, #FF4D6D 100%);
+
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  body {
+    background-color: var(--color-midnight-navy);
+    color: var(--color-soft-white);
+    min-height: 100vh;
+  }
+}
+
+/* Typography Utility Classes */
+.font-display {
+  font-family: 'Sora', 'Plus Jakarta Sans', sans-serif;
+}
+
+.font-jakarta {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.font-manrope {
+  font-family: 'Manrope', -apple-system, sans-serif;
+}
+
+.font-mono-tech {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.font-telugu {
+  font-family: 'Noto Sans Telugu', 'Plus Jakarta Sans', sans-serif;
+}
+
+/* Glassmorphism Classes */
+.glass-surface {
+  background: rgba(17, 24, 39, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-surface-light {
+  background: rgba(246, 249, 252, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(7, 20, 38, 0.08);
+}
+
+.glass-surface-glow {
+  background: rgba(27, 16, 53, 0.55);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(217, 70, 239, 0.18);
+  box-shadow: 0 10px 30px -10px rgba(124, 58, 237, 0.25);
+}
+
+.glass-surface-amber {
+  background: rgba(17, 24, 39, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 167, 38, 0.2);
+  box-shadow: 0 10px 30px -10px rgba(251, 106, 33, 0.2);
+}
+
+/* Gradient Borders */
+.border-gradient-hero {
+  border: 1px solid transparent;
+  background-clip: padding-box, border-box;
+  background-origin: padding-box, border-box;
+  background-image: linear-gradient(to right, rgba(17, 24, 39, 0.85), rgba(17, 24, 39, 0.85)), linear-gradient(120deg, #FFA726, #FB6A21, #D946EF, #7C3AED);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #071426;
+}
+::-webkit-scrollbar-thumb {
+  background: #1B1035;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #7C3AED;
+}
