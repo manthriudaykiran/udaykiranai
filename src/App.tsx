@@ -83,7 +83,7 @@ export default function App() {
           }
         }
         setIsVerifyingAdmin(false);
-      } else if (path === '/design-system') {
+      } else if (path.startsWith('/design-system')) {
         setCurrentRoute('design-system');
         setIsVerifyingAdmin(false);
       } else {
@@ -142,76 +142,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#071426] text-white flex flex-col font-manrope">
-      {/* Discreet Route Switcher Bar (Useful in AI Studio Preview) */}
-      <div className="bg-[#050D1A] border-b border-white/10 px-4 py-1.5 flex items-center justify-between text-[11px] font-mono text-slate-400">
-        <div className="flex items-center gap-2">
-          <span className="text-[#FFA726] font-bold">ROUTE:</span>
-          <span className="text-white">
-            {currentRoute === 'public'
-              ? '/'
-              : currentRoute === 'admin'
-              ? '/admin'
-              : currentRoute === 'admin-login'
-              ? '/admin/login'
-              : '/design-system'}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigateTo('public', '/')}
-            className={`px-2 py-0.5 rounded transition-colors ${
-              currentRoute === 'public' ? 'bg-[#FFA726] text-black font-semibold' : 'hover:text-white'
-            }`}
-          >
-            Public Website
-          </button>
-          <span>·</span>
-          <button
-            onClick={async () => {
-              setIsVerifyingAdmin(true);
-              const session = await verifyAdminSession();
-              setIsVerifyingAdmin(false);
-              if (session) {
-                setAdminSessionState(session);
-                navigateTo('admin', '/admin');
-              } else {
-                navigateTo('admin-login', '/admin/login');
-              }
-            }}
-            className={`px-2 py-0.5 rounded transition-colors ${
-              currentRoute === 'admin' || currentRoute === 'admin-login'
-                ? 'bg-[#FB6A21] text-white font-semibold'
-                : 'hover:text-white'
-            }`}
-          >
-            Admin Dashboard
-          </button>
-          <span>·</span>
-          <button
-            onClick={() => navigateTo('design-system', '/design-system')}
-            className={`px-2 py-0.5 rounded transition-colors ${
-              currentRoute === 'design-system' ? 'bg-[#D946EF] text-white font-semibold' : 'hover:text-white'
-            }`}
-          >
-            Design System (V1)
-          </button>
-        </div>
-      </div>
-
       {/* ROUTE 1: PUBLIC LANDING PAGE (Default /) */}
       {currentRoute === 'public' && (
-        <PublicLandingPage
-          onNavigateToAdmin={async () => {
-            const session = await verifyAdminSession();
-            if (session) {
-              setAdminSessionState(session);
-              navigateTo('admin', '/admin');
-            } else {
-              navigateTo('admin-login', '/admin/login');
-            }
-          }}
-        />
+        <PublicLandingPage />
       )}
 
       {/* ROUTE 2: ADMIN LOGIN (/admin/login) */}
@@ -252,7 +185,13 @@ export default function App() {
       {currentRoute === 'design-system' && (
         <div className="flex-1 flex flex-col">
           <header className="sticky top-0 z-40 bg-[#071426]/90 backdrop-blur-xl border-b border-white/10 px-6 lg:px-12 py-4 flex items-center justify-between gap-8">
-            <BrandWordmark brand="personal" size="md" />
+            <button
+              onClick={() => navigateTo('public', '/')}
+              className="text-left hover:opacity-85 transition-opacity"
+              title="Return to Public Website"
+            >
+              <BrandWordmark brand="personal" size="md" />
+            </button>
 
             <nav className="hidden lg:flex items-center gap-6 text-xs font-manrope font-medium text-slate-300">
               <button

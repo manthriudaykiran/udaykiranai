@@ -17,7 +17,6 @@ import {
   Download,
   FolderLock,
   Globe,
-  Lock,
   MessageCircle,
   Play,
   ShieldCheck,
@@ -586,16 +585,7 @@ export const PublicLandingPage: React.FC<PublicLandingPageProps> = ({ onNavigate
           <span>© {new Date().getFullYear()} AI Freedom With Uday. All rights reserved.</span>
         </div>
 
-        {/* Subtle Discreet Admin Portal Link for Uday */}
-        <div className="flex items-center gap-4">
-          <button
-            onClick={onNavigateToAdmin}
-            className="text-[11px] font-mono text-slate-600 hover:text-slate-400 transition-colors flex items-center gap-1"
-            title="Private Admin Portal"
-          >
-            <Lock className="w-3 h-3" />
-            <span>Admin Portal</span>
-          </button>
+        <div>
           <span className="text-[11px] font-mono text-[#D5B46B]/80">
             Created by Uday Kiran
           </span>
