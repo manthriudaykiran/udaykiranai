@@ -9,8 +9,8 @@ import {
   fetchLearners,
   updateLearnerRecord,
   exportLearnersToCSV,
-  clearAdminSession,
-  getAdminSession,
+  adminLogout,
+  AdminSession,
   isSupabaseConfigured,
   SUPABASE_SETUP_SQL,
   Learner,
@@ -43,11 +43,16 @@ import {
 } from 'lucide-react';
 
 interface AdminDashboardProps {
+  adminSession?: AdminSession | null;
   onLogout: () => void;
   onNavigateHome: () => void;
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavigateHome }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({
+  adminSession,
+  onLogout,
+  onNavigateHome,
+}) => {
   const [learners, setLearners] = useState<Learner[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light'); // Default to requested Premium Light Dashboard
@@ -69,7 +74,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
   // Active Tab: Roster vs Future V2 modules
   const [activeTab, setActiveTab] = useState<'roster' | 'pipeline' | 'journey' | 'sql'>('roster');
 
-  const adminSession = getAdminSession();
   const isLight = themeMode === 'light';
 
   const loadData = async () => {
@@ -150,8 +154,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
     setTimeout(() => setSqlCopied(false), 2000);
   };
 
-  const handleLogoutClick = () => {
-    clearAdminSession();
+  const handleLogoutClick = async () => {
+    await adminLogout();
     onLogout();
   };
 

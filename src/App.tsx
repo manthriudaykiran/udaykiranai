@@ -5,13 +5,17 @@
  * 2. Private Admin Dashboard (/admin)
  * 3. Private Admin Login (/admin/login)
  * 4. Brand Design System Showcase (/design-system - Preserved V1)
+ * 
+ * Strict Admin Authentication:
+ * Real Supabase Auth + Server-Verified is_admin() RPC.
+ * Zero browser-storage authorization fallbacks.
  */
 
 import React, { useState, useEffect } from 'react';
 import { PublicLandingPage } from './components/PublicLandingPage';
 import { AdminLogin } from './components/AdminLogin';
 import { AdminDashboard } from './components/AdminDashboard';
-import { getAdminSession, AdminSession } from './lib/supabase';
+import { verifyAdminSession, adminLogout, supabase, AdminSession } from './lib/supabase';
 
 // Preserved V1 Brand Design System Showcase Imports
 import { BrandWordmark } from './design-system/components/BrandWordmark';
@@ -35,46 +39,78 @@ import {
   Sliders,
   Play,
   Share2,
-  FileText,
   Lock,
-  Globe,
-  ArrowRight,
+  Loader2,
 } from 'lucide-react';
 
 type Route = 'public' | 'admin-login' | 'admin' | 'design-system';
 
 export default function App() {
   const [currentRoute, setCurrentRoute] = useState<Route>('public');
-  const [adminSession, setAdminSessionState] = useState<AdminSession | null>(getAdminSession());
+  const [adminSession, setAdminSessionState] = useState<AdminSession | null>(null);
+  const [isVerifyingAdmin, setIsVerifyingAdmin] = useState<boolean>(false);
   const [designSystemTab, setDesignSystemTab] = useState<
     'palette' | 'gradients' | 'themes' | 'typography' | 'surfaces' | 'motion' | 'presentation' | 'social' | 'console' | 'guidelines'
   >('presentation');
   const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
 
-  // Sync with browser URL path
+  // Synchronize route and verify authentication
   useEffect(() => {
-    const handleLocationChange = () => {
+    let isMounted = true;
+
+    const handleLocationChange = async () => {
       const path = window.location.pathname;
+
       if (path === '/admin/login') {
         setCurrentRoute('admin-login');
+        setIsVerifyingAdmin(false);
       } else if (path.startsWith('/admin')) {
-        const session = getAdminSession();
-        setAdminSessionState(session);
+        setIsVerifyingAdmin(true);
+        setCurrentRoute('admin');
+        const session = await verifyAdminSession();
+        if (!isMounted) return;
+
         if (session) {
+          setAdminSessionState(session);
           setCurrentRoute('admin');
         } else {
+          setAdminSessionState(null);
           setCurrentRoute('admin-login');
+          try {
+            window.history.replaceState({}, '', '/admin/login');
+          } catch {
+            // ignore
+          }
         }
+        setIsVerifyingAdmin(false);
       } else if (path === '/design-system') {
         setCurrentRoute('design-system');
+        setIsVerifyingAdmin(false);
       } else {
         setCurrentRoute('public');
+        setIsVerifyingAdmin(false);
       }
     };
 
     handleLocationChange();
     window.addEventListener('popstate', handleLocationChange);
-    return () => window.removeEventListener('popstate', handleLocationChange);
+
+    // Subscribe to Supabase Auth State Changes
+    const authSubscription = supabase?.auth.onAuthStateChange(async (event) => {
+      if (event === 'SIGNED_OUT') {
+        if (!isMounted) return;
+        setAdminSessionState(null);
+        if (window.location.pathname.startsWith('/admin')) {
+          navigateTo('admin-login', '/admin/login');
+        }
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('popstate', handleLocationChange);
+      authSubscription?.data?.subscription?.unsubscribe();
+    };
   }, []);
 
   const navigateTo = (route: Route, pathUrl: string) => {
@@ -86,19 +122,27 @@ export default function App() {
     setCurrentRoute(route);
   };
 
-  const handleAdminLoginSuccess = () => {
-    setAdminSessionState(getAdminSession());
-    navigateTo('admin', '/admin');
+  const handleAdminLoginSuccess = async () => {
+    setIsVerifyingAdmin(true);
+    const session = await verifyAdminSession();
+    setIsVerifyingAdmin(false);
+    if (session) {
+      setAdminSessionState(session);
+      navigateTo('admin', '/admin');
+    } else {
+      navigateTo('admin-login', '/admin/login');
+    }
   };
 
-  const handleAdminLogout = () => {
+  const handleAdminLogout = async () => {
+    await adminLogout();
     setAdminSessionState(null);
     navigateTo('admin-login', '/admin/login');
   };
 
   return (
     <div className="min-h-screen bg-[#071426] text-white flex flex-col font-manrope">
-      {/* Discreet Development Route Switcher Bar (Useful in AI Studio Preview) */}
+      {/* Discreet Route Switcher Bar (Useful in AI Studio Preview) */}
       <div className="bg-[#050D1A] border-b border-white/10 px-4 py-1.5 flex items-center justify-between text-[11px] font-mono text-slate-400">
         <div className="flex items-center gap-2">
           <span className="text-[#FFA726] font-bold">ROUTE:</span>
@@ -124,9 +168,16 @@ export default function App() {
           </button>
           <span>·</span>
           <button
-            onClick={() => {
-              if (adminSession) navigateTo('admin', '/admin');
-              else navigateTo('admin-login', '/admin/login');
+            onClick={async () => {
+              setIsVerifyingAdmin(true);
+              const session = await verifyAdminSession();
+              setIsVerifyingAdmin(false);
+              if (session) {
+                setAdminSessionState(session);
+                navigateTo('admin', '/admin');
+              } else {
+                navigateTo('admin-login', '/admin/login');
+              }
             }}
             className={`px-2 py-0.5 rounded transition-colors ${
               currentRoute === 'admin' || currentRoute === 'admin-login'
@@ -151,9 +202,14 @@ export default function App() {
       {/* ROUTE 1: PUBLIC LANDING PAGE (Default /) */}
       {currentRoute === 'public' && (
         <PublicLandingPage
-          onNavigateToAdmin={() => {
-            if (getAdminSession()) navigateTo('admin', '/admin');
-            else navigateTo('admin-login', '/admin/login');
+          onNavigateToAdmin={async () => {
+            const session = await verifyAdminSession();
+            if (session) {
+              setAdminSessionState(session);
+              navigateTo('admin', '/admin');
+            } else {
+              navigateTo('admin-login', '/admin/login');
+            }
           }}
         />
       )}
@@ -168,10 +224,28 @@ export default function App() {
 
       {/* ROUTE 3: PRIVATE ADMIN DASHBOARD (/admin) */}
       {currentRoute === 'admin' && (
-        <AdminDashboard
-          onLogout={handleAdminLogout}
-          onNavigateHome={() => navigateTo('public', '/')}
-        />
+        isVerifyingAdmin ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-12 space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#FFA726] to-[#FB6A21] flex items-center justify-center text-white shadow-xl shadow-[#FB6A21]/20 animate-pulse">
+              <Lock className="w-6 h-6" />
+            </div>
+            <div className="flex items-center gap-2 text-xs font-mono text-slate-300">
+              <Loader2 className="w-4 h-4 animate-spin text-[#FFA726]" />
+              <span>Verifying administrator authorization via Supabase Auth...</span>
+            </div>
+          </div>
+        ) : adminSession ? (
+          <AdminDashboard
+            adminSession={adminSession}
+            onLogout={handleAdminLogout}
+            onNavigateHome={() => navigateTo('public', '/')}
+          />
+        ) : (
+          <AdminLogin
+            onLoginSuccess={handleAdminLoginSuccess}
+            onNavigateHome={() => navigateTo('public', '/')}
+          />
+        )
       )}
 
       {/* ROUTE 4: PRESERVED V1 BRAND DESIGN SYSTEM SHOWCASE (/design-system) */}

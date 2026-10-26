@@ -1,13 +1,14 @@
 /**
- * Supabase Data Layer & Learner Registration Architecture
- * Handles connection, schema validation, Row Level Security guidelines,
- * duplicate prevention, and offline-resilient local storage fallback.
+ * AI FREEDOM WITH UDAY - Supabase Client & Data Layer (V1.2 Production Hardened)
+ * Integrates directly with Supabase Auth, Row Level Security, and secure RPCs.
+ * Zero hardcoded passwords. Zero mock authentication. Zero storage-based bypasses.
  */
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 
 export interface Learner {
   id: string;
+  tracking_token?: string;
   full_name: string;
   whatsapp_number: string;
   profession: string;
@@ -21,7 +22,7 @@ export interface Learner {
   drive_accessed: boolean;
   whatsapp_channel_clicked: boolean;
   status: 'new' | 'contacted' | 'in_followup' | 'starter_kit_accessed' | 'converted' | 'archived';
-  admin_notes?: string;
+  admin_notes: string;
   created_at: string;
   updated_at: string;
 }
@@ -39,331 +40,297 @@ export interface RegistrationInput {
   utmCampaign?: string;
 }
 
-// Read env variables
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+export interface RegistrationResult {
+  success: boolean;
+  isDuplicate?: boolean;
+  learnerId?: string;
+  trackingToken?: string;
+  fullName?: string;
+  message?: string;
+  error?: string;
+  errorCode?: string;
+}
+
+export interface AdminSession {
+  email: string;
+  name: string;
+  role: 'admin';
+  authenticatedAt: string;
+  user: User;
+}
+
+// 1. Consistent Environment Variable Resolution with Support for Publishable Key
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  '';
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
 export const supabase: SupabaseClient | null = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    })
   : null;
 
-// Initial Realistic Seed Learners for immediate testing & demonstration
-const SEED_LEARNERS: Learner[] = [
-  {
-    id: 'lrn-001',
-    full_name: 'Priya Sharma',
-    whatsapp_number: '+91 98765 43210',
-    profession: 'Working Professional',
-    ai_knowledge_level: 'Intermediate',
-    learning_goal: 'Automate daily work tasks',
-    privacy_consent: true,
-    marketing_consent: true,
-    source: 'Instagram',
-    drive_accessed: true,
-    whatsapp_channel_clicked: true,
-    status: 'starter_kit_accessed',
-    admin_notes: 'Connected on WhatsApp. Interested in Excel & Gemini automation templates.',
-    created_at: new Date(Date.now() - 1000 * 60 * 35).toISOString(), // 35 mins ago
-    updated_at: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
-  },
-  {
-    id: 'lrn-002',
-    full_name: 'Rahul Varma',
-    whatsapp_number: '+91 91234 56789',
-    profession: 'Business Owner / Founder',
-    ai_knowledge_level: 'Beginner',
-    learning_goal: 'Launch an AI Business',
-    privacy_consent: true,
-    marketing_consent: false,
-    source: 'LinkedIn',
-    drive_accessed: true,
-    whatsapp_channel_clicked: false,
-    status: 'new',
-    admin_notes: 'Looking to integrate AI into local logistics business. Send 7-day starter guide.',
-    created_at: new Date(Date.now() - 1000 * 60 * 180).toISOString(), // 3 hrs ago
-    updated_at: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-  },
-  {
-    id: 'lrn-003',
-    full_name: 'Ananya Reddy',
-    whatsapp_number: '+91 99887 76655',
-    profession: 'Creator / Agency',
-    ai_knowledge_level: 'Advanced',
-    learning_goal: 'Create Content & Grow Audience',
-    privacy_consent: true,
-    marketing_consent: true,
-    source: 'YouTube',
-    drive_accessed: false,
-    whatsapp_channel_clicked: true,
-    status: 'in_followup',
-    admin_notes: 'Joined WhatsApp channel. Runs a video podcast, wants automated script workflows.',
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 18).toISOString(), // 18 hrs ago
-    updated_at: new Date(Date.now() - 1000 * 60 * 60 * 18).toISOString(),
-  },
-  {
-    id: 'lrn-004',
-    full_name: 'Karthik S.',
-    whatsapp_number: '+91 94401 23456',
-    profession: 'Freelancer / Consultant',
-    ai_knowledge_level: 'Intermediate',
-    learning_goal: 'Build AI Agents & Workflows',
-    privacy_consent: true,
-    marketing_consent: true,
-    source: 'WhatsApp Referral',
-    drive_accessed: true,
-    whatsapp_channel_clicked: true,
-    status: 'converted',
-    admin_notes: 'Attended weekend webinar. Upgraded to KiranForge agent builder masterclass.',
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), // 2 days ago
-    updated_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-  },
-  {
-    id: 'lrn-005',
-    full_name: 'Suresh Kumar',
-    whatsapp_number: '+91 98480 11223',
-    profession: 'Student',
-    ai_knowledge_level: 'Beginner',
-    learning_goal: 'Career Growth & High-Income Skills',
-    privacy_consent: true,
-    marketing_consent: true,
-    source: 'Instagram',
-    drive_accessed: true,
-    whatsapp_channel_clicked: false,
-    status: 'contacted',
-    admin_notes: 'Final year B.Tech student looking for AI portfolio projects.',
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(), // 3 days ago
-    updated_at: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
-  },
-];
-
-const LOCAL_STORAGE_KEY = 'ai_freedom_learners_v1';
-const ADMIN_SESSION_KEY = 'ai_freedom_admin_session';
-
-// Initialize local storage if empty
-export const getLocalLearners = (): Learner[] => {
-  try {
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(SEED_LEARNERS));
-      return SEED_LEARNERS;
-    }
-    return JSON.parse(raw);
-  } catch {
-    return SEED_LEARNERS;
-  }
-};
-
-export const saveLocalLearners = (learners: Learner[]) => {
-  try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(learners));
-  } catch (err) {
-    console.error('Failed to save to localStorage:', err);
-  }
-};
-
 /**
- * Register a new learner
- * Performs duplicate validation, normalizes phone number, and persists to Supabase or local cache
+ * Register Learner (Public Funnel)
+ * Submits strictly to the serverless endpoint /api/register.
+ * Never leaks existing tokens or data on duplicate.
  */
 export const registerLearner = async (
   input: RegistrationInput
-): Promise<{ success: boolean; learner?: Learner; error?: string }> => {
-  // 1. Basic validation
-  if (!input.fullName.trim()) {
-    return { success: false, error: 'Please enter your full name.' };
+): Promise<RegistrationResult> => {
+  // 1. Client-Side Pre-validation
+  if (input.privacyConsent !== true) {
+    return {
+      success: false,
+      error: 'You must explicitly consent to receive the free starter kit.',
+      errorCode: 'CONSENT_REQUIRED',
+    };
   }
+
+  const cleanName = input.fullName.trim();
+  if (cleanName.length < 2) {
+    return {
+      success: false,
+      error: 'Please enter your full name (minimum 2 characters).',
+      errorCode: 'INVALID_NAME',
+    };
+  }
+
   const cleanPhone = input.whatsappNumber.replace(/[^0-9+]/g, '').trim();
-  if (!cleanPhone || cleanPhone.length < 8) {
-    return { success: false, error: 'Please enter a valid WhatsApp phone number with country code.' };
+  if (cleanPhone.length < 8) {
+    return {
+      success: false,
+      error: 'Please enter a valid WhatsApp phone number with country code.',
+      errorCode: 'INVALID_PHONE',
+    };
   }
-  if (!input.privacyConsent) {
-    return { success: false, error: 'You must agree to the privacy policy to receive the starter kit.' };
-  }
 
-  const newRecord: Learner = {
-    id: `lrn-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-    full_name: input.fullName.trim(),
-    whatsapp_number: cleanPhone,
-    profession: input.profession || 'Working Professional',
-    ai_knowledge_level: input.aiKnowledgeLevel || 'Beginner',
-    learning_goal: input.learningGoal || 'Automate daily work tasks',
-    privacy_consent: input.privacyConsent,
-    marketing_consent: input.marketingConsent || false,
-    source: input.source || 'Direct Website',
-    utm_source: input.utmSource,
-    utm_campaign: input.utmCampaign,
-    drive_accessed: false,
-    whatsapp_channel_clicked: false,
-    status: 'new',
-    admin_notes: '',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
+  // 2. Submit to Server-Verified Serverless Endpoint (/api/register)
+  try {
+    const response = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fullName: cleanName,
+        whatsappNumber: cleanPhone,
+        profession: input.profession,
+        aiKnowledgeLevel: input.aiKnowledgeLevel,
+        learningGoal: input.learningGoal,
+        privacyConsent: true,
+        marketingConsent: Boolean(input.marketingConsent),
+        source: input.source || 'Direct Website',
+        utmSource: input.utmSource,
+        utmCampaign: input.utmCampaign,
+      }),
+    });
 
-  // If Supabase is configured, save to Supabase
-  if (supabase) {
-    try {
-      // Check for duplicate WhatsApp number
-      const { data: existing } = await supabase
-        .from('learners')
-        .select('id, whatsapp_number')
-        .eq('whatsapp_number', cleanPhone)
-        .maybeSingle();
+    const data = await response.json().catch(() => ({}));
 
-      if (existing) {
-        // Already registered - fetch latest and return success so they can access resources without error
-        return { success: true, learner: { ...newRecord, id: existing.id } };
-      }
-
-      const { data, error } = await supabase
-        .from('learners')
-        .insert([
-          {
-            full_name: newRecord.full_name,
-            whatsapp_number: newRecord.whatsapp_number,
-            profession: newRecord.profession,
-            ai_knowledge_level: newRecord.ai_knowledge_level,
-            learning_goal: newRecord.learning_goal,
-            privacy_consent: newRecord.privacy_consent,
-            marketing_consent: newRecord.marketing_consent,
-            source: newRecord.source,
-            utm_source: newRecord.utm_source,
-            utm_campaign: newRecord.utm_campaign,
-            status: 'new',
-          },
-        ])
-        .select()
-        .single();
-
-      if (error) {
-        console.warn('Supabase insert returned error, falling back to local storage:', error);
-        // Fallback save locally
-        const list = getLocalLearners();
-        saveLocalLearners([newRecord, ...list]);
-        return { success: true, learner: newRecord };
-      }
-
-      return { success: true, learner: data || newRecord };
-    } catch (err: any) {
-      console.error('Supabase exception, saving to local cache:', err);
-      const list = getLocalLearners();
-      saveLocalLearners([newRecord, ...list]);
-      return { success: true, learner: newRecord };
+    if (response.ok && data.success) {
+      return {
+        success: true,
+        isDuplicate: Boolean(data.is_duplicate),
+        learnerId: data.learner_id || undefined,
+        trackingToken: data.tracking_token || undefined,
+        fullName: data.full_name || cleanName,
+        message: data.message,
+      };
     }
+
+    return {
+      success: false,
+      error: data.error || 'Registration failed. Please try again.',
+      errorCode: data.error_code || 'REGISTRATION_FAILED',
+    };
+  } catch (err: any) {
+    console.error('Registration fetch error:', err);
+    return {
+      success: false,
+      error: 'Unable to reach registration server. Please check your internet connection.',
+      errorCode: 'NETWORK_ERROR',
+    };
   }
-
-  // Fallback: Local Storage
-  const current = getLocalLearners();
-  // Check duplicate locally
-  const dupIndex = current.findIndex(
-    (l) => l.whatsapp_number.replace(/\D/g, '') === cleanPhone.replace(/\D/g, '')
-  );
-
-  if (dupIndex !== -1) {
-    // Return existing record smoothly
-    return { success: true, learner: current[dupIndex] };
-  }
-
-  saveLocalLearners([newRecord, ...current]);
-  return { success: true, learner: newRecord };
 };
 
 /**
- * Track user clicks on Drive or WhatsApp channel
+ * Track Resource Click
+ * Routes through secure /api/track endpoint with validated learnerId and secret tracking token.
  */
 export const trackResourceClick = async (
   learnerId: string,
-  type: 'drive' | 'whatsapp'
-) => {
-  const current = getLocalLearners();
-  const updated = current.map((l) => {
-    if (l.id === learnerId) {
-      return {
-        ...l,
-        drive_accessed: type === 'drive' ? true : l.drive_accessed,
-        whatsapp_channel_clicked: type === 'whatsapp' ? true : l.whatsapp_channel_clicked,
-        status: l.status === 'new' ? 'starter_kit_accessed' : l.status,
-        updated_at: new Date().toISOString(),
-      };
-    }
-    return l;
-  });
-  saveLocalLearners(updated);
+  trackingToken: string,
+  resourceType: 'drive' | 'whatsapp'
+): Promise<boolean> => {
+  if (!learnerId || !trackingToken) return false;
 
-  if (supabase) {
-    try {
-      const updatePayload: Record<string, any> = {
-        updated_at: new Date().toISOString(),
-      };
-      if (type === 'drive') updatePayload.drive_accessed = true;
-      if (type === 'whatsapp') updatePayload.whatsapp_channel_clicked = true;
+  try {
+    const res = await fetch('/api/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ learnerId, trackingToken, resourceType }),
+    });
 
-      await supabase.from('learners').update(updatePayload).eq('id', learnerId);
-    } catch (err) {
-      console.warn('Supabase click tracking fallback:', err);
+    if (res.ok) {
+      const json = await res.json().catch(() => ({}));
+      return Boolean(json.success);
     }
+    return false;
+  } catch (err) {
+    console.warn('Click tracking error:', err);
+    return false;
   }
 };
 
 /**
- * Fetch all learners for Admin Dashboard
+ * Real Server-Verified Admin Session Verification
+ * Never trusts localStorage or sessionStorage keys.
+ * Validates the Supabase Auth session AND verifies role through the server-side is_admin() RPC.
+ */
+export const verifyAdminSession = async (): Promise<AdminSession | null> => {
+  if (!supabase) return null;
+
+  try {
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (sessionError || !session?.user) {
+      return null;
+    }
+
+    // Call PostgreSQL SECURITY DEFINER is_admin() function to verify allowlist
+    const { data: isAdmin, error: rpcError } = await supabase.rpc('is_admin');
+
+    if (rpcError || !isAdmin) {
+      // User is authenticated but NOT an allowlisted admin
+      await supabase.auth.signOut();
+      return null;
+    }
+
+    return {
+      email: session.user.email || '',
+      name: session.user.user_metadata?.full_name || 'Uday Kiran',
+      role: 'admin',
+      authenticatedAt: session.user.last_sign_in_at || new Date().toISOString(),
+      user: session.user,
+    };
+  } catch (err) {
+    console.error('Error verifying admin session:', err);
+    return null;
+  }
+};
+
+/**
+ * Admin Authentication — Genuine Supabase Auth with Database Allowlist Verification
+ * No hardcoded default passwords or mock bypasses.
+ */
+export const adminLogin = async (
+  email: string,
+  password: string
+): Promise<{ success: boolean; user?: User; error?: string }> => {
+  if (!supabase) {
+    return {
+      success: false,
+      error: 'Supabase credentials are not configured in environment (VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY required).',
+    };
+  }
+
+  try {
+    // 1. Real Supabase Auth sign-in
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+
+    if (error || !data.user) {
+      return {
+        success: false,
+        error: error?.message || 'Invalid email or password.',
+      };
+    }
+
+    // 2. Server-side allowlist verification via RPC public.is_admin()
+    const { data: isAdmin, error: roleError } = await supabase.rpc('is_admin');
+
+    if (roleError || !isAdmin) {
+      await supabase.auth.signOut();
+      return {
+        success: false,
+        error: 'Access denied: Your account is not on the authorized administrator allowlist.',
+      };
+    }
+
+    return {
+      success: true,
+      user: data.user,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || 'Authentication error occurred.',
+    };
+  }
+};
+
+/**
+ * Admin Sign Out
+ */
+export const adminLogout = async (): Promise<void> => {
+  if (supabase) {
+    await supabase.auth.signOut();
+  }
+};
+
+/**
+ * Fetch all registered learners (Requires authenticated admin session)
+ * Row Level Security will reject queries from non-admins at database level.
  */
 export const fetchLearners = async (): Promise<Learner[]> => {
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('learners')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error || !data) {
-        console.warn('Supabase fetch failed, returning local storage records:', error);
-        return getLocalLearners();
-      }
-      return data as Learner[];
-    } catch (err) {
-      console.warn('Supabase fetch exception, using local storage:', err);
-      return getLocalLearners();
-    }
+  if (!supabase) {
+    throw new Error('Supabase is not configured.');
   }
 
-  return getLocalLearners();
+  const { data, error } = await supabase
+    .from('learners')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw new Error(error.message || 'Failed to fetch learner records.');
+  }
+
+  return (data || []) as Learner[];
 };
 
 /**
- * Update learner status or notes from Admin Dashboard
+ * Update learner record status or CRM notes (Admin only)
  */
 export const updateLearnerRecord = async (
   id: string,
   updates: Partial<Pick<Learner, 'status' | 'admin_notes'>>
 ): Promise<boolean> => {
-  const current = getLocalLearners();
-  const next = current.map((l) => {
-    if (l.id === id) {
-      return {
-        ...l,
-        ...updates,
-        updated_at: new Date().toISOString(),
-      };
-    }
-    return l;
-  });
-  saveLocalLearners(next);
+  if (!supabase) return false;
 
-  if (supabase) {
-    try {
-      await supabase
-        .from('learners')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id);
-    } catch (err) {
-      console.warn('Supabase update failed:', err);
-    }
+  const { error } = await supabase
+    .from('learners')
+    .update({
+      ...updates,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Failed to update learner:', error);
+    return false;
   }
 
   return true;
@@ -381,7 +348,7 @@ export const exportLearnersToCSV = (learners: Learner[]) => {
     'AI Knowledge Level',
     'Learning Goal',
     'Status',
-    'Registration Source',
+    'Source',
     'Drive Accessed',
     'WhatsApp Channel Clicked',
     'Registration Date',
@@ -413,88 +380,365 @@ export const exportLearnersToCSV = (learners: Learner[]) => {
 };
 
 /**
- * Admin Authentication State & Verification
+ * Complete V1.2 SQL Schema Reference for Admin Modal View
  */
-export interface AdminSession {
-  email: string;
-  name: string;
-  role: 'admin';
-  token: string;
-  authenticatedAt: string;
-}
+export const SUPABASE_SETUP_SQL = `-- ============================================================================
+-- AI FREEDOM WITH UDAY — FINAL PRODUCTION SECURITY MIGRATION (V1.2)
+-- Canonical Database Migration Script (supabase/migration_v1_2.sql)
+-- ============================================================================
 
-export const getAdminSession = (): AdminSession | null => {
-  try {
-    const raw = sessionStorage.getItem(ADMIN_SESSION_KEY) || localStorage.getItem(ADMIN_SESSION_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-};
+BEGIN;
 
-export const setAdminSession = (session: AdminSession, remember: boolean = true) => {
-  const target = remember ? localStorage : sessionStorage;
-  target.setItem(ADMIN_SESSION_KEY, JSON.stringify(session));
-};
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
-export const clearAdminSession = () => {
-  sessionStorage.removeItem(ADMIN_SESSION_KEY);
-  localStorage.removeItem(ADMIN_SESSION_KEY);
-};
-
-/**
- * SQL Schema & Row Level Security Setup Script
- * Can be run in Supabase SQL editor to create the exact table & security policies.
- */
-export const SUPABASE_SETUP_SQL = `-- 1. Create Learners Table
+-- 1. TABLE: public.learners
 CREATE TABLE IF NOT EXISTS public.learners (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tracking_token UUID DEFAULT gen_random_uuid() NOT NULL,
     full_name TEXT NOT NULL,
-    whatsapp_number TEXT NOT NULL UNIQUE,
+    whatsapp_number TEXT NOT NULL,
     profession TEXT NOT NULL,
     ai_knowledge_level TEXT NOT NULL,
     learning_goal TEXT NOT NULL,
-    privacy_consent BOOLEAN DEFAULT TRUE,
-    marketing_consent BOOLEAN DEFAULT FALSE,
-    source TEXT DEFAULT 'Direct Website',
+    privacy_consent BOOLEAN NOT NULL,
+    marketing_consent BOOLEAN DEFAULT FALSE NOT NULL,
+    source TEXT DEFAULT 'Direct Website' NOT NULL,
     utm_source TEXT,
     utm_campaign TEXT,
-    drive_accessed BOOLEAN DEFAULT FALSE,
-    whatsapp_channel_clicked BOOLEAN DEFAULT FALSE,
-    status TEXT DEFAULT 'new' CHECK (status IN ('new', 'contacted', 'in_followup', 'starter_kit_accessed', 'converted', 'archived')),
-    admin_notes TEXT DEFAULT '',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    drive_accessed BOOLEAN DEFAULT FALSE NOT NULL,
+    whatsapp_channel_clicked BOOLEAN DEFAULT FALSE NOT NULL,
+    status TEXT DEFAULT 'new' NOT NULL,
+    admin_notes TEXT DEFAULT '' NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT pg_catalog.now() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT pg_catalog.now() NOT NULL
 );
 
--- 2. Indexes for fast search and filtering
-CREATE INDEX IF NOT EXISTS idx_learners_created_at ON public.learners(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_learners_status ON public.learners(status);
-CREATE INDEX IF NOT EXISTS idx_learners_whatsapp ON public.learners(whatsapp_number);
-CREATE INDEX IF NOT EXISTS idx_learners_profession ON public.learners(profession);
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'uq_learners_whatsapp' 
+        AND conrelid = 'public.learners'::regclass
+    ) THEN
+        ALTER TABLE public.learners ADD CONSTRAINT uq_learners_whatsapp UNIQUE (whatsapp_number);
+    END IF;
 
--- 3. Enable Row Level Security (RLS)
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'chk_learners_privacy_consent' 
+        AND conrelid = 'public.learners'::regclass
+    ) THEN
+        ALTER TABLE public.learners ADD CONSTRAINT chk_learners_privacy_consent CHECK (privacy_consent = TRUE);
+    END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_learners_created_at ON public.learners (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_learners_status ON public.learners (status);
+CREATE INDEX IF NOT EXISTS idx_learners_whatsapp ON public.learners (whatsapp_number);
+
+-- 2. TABLE: public.rate_limit_events (Sliding-Window Log)
+CREATE TABLE IF NOT EXISTS public.rate_limit_events (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    identifier TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT pg_catalog.now() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_rate_limit_events_lookup 
+ON public.rate_limit_events (identifier, created_at DESC);
+
+
+-- 3. TABLE: public.admin_users
+CREATE TABLE IF NOT EXISTS public.admin_users (
+    user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    email TEXT NOT NULL UNIQUE,
+    role TEXT DEFAULT 'admin' NOT NULL CHECK (role IN ('super_admin', 'admin')),
+    created_at TIMESTAMPTZ DEFAULT pg_catalog.now() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_users_email ON public.admin_users (email);
+
+-- 4. FUNCTION: public.is_admin()
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = ''
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1 
+    FROM public.admin_users 
+    WHERE user_id = auth.uid()
+  );
+$$;
+
+ALTER FUNCTION public.is_admin() OWNER TO postgres;
+
+-- 5. FUNCTION: public.check_rate_limit()
+CREATE OR REPLACE FUNCTION public.check_rate_limit(
+    p_identifier TEXT,
+    p_max_attempts INT,
+    p_window_seconds INT
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+    v_now TIMESTAMPTZ := pg_catalog.now();
+    v_window_start TIMESTAMPTZ;
+    v_count INT;
+BEGIN
+    -- Validate input thresholds (reject NULL, zero, and negative values)
+    IF p_max_attempts IS NULL OR p_max_attempts <= 0 OR
+       p_window_seconds IS NULL OR p_window_seconds <= 0 THEN
+        RETURN FALSE;
+    END IF;
+
+    -- Validate input format: exactly 64 lowercase hexadecimal characters (HMAC SHA-256)
+    IF p_identifier IS NULL OR NOT (p_identifier ~ '^[0-9a-f]{64}$') THEN
+        RETURN FALSE;
+    END IF;
+
+    v_window_start := v_now - (p_window_seconds || ' seconds')::INTERVAL;
+
+    PERFORM pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext(p_identifier));
+
+    DELETE FROM public.rate_limit_events
+    WHERE identifier = p_identifier AND created_at < v_window_start;
+
+    SELECT pg_catalog.count(*) INTO v_count
+    FROM public.rate_limit_events
+    WHERE identifier = p_identifier AND created_at >= v_window_start;
+
+    IF v_count >= p_max_attempts THEN
+        RETURN FALSE;
+    END IF;
+
+    INSERT INTO public.rate_limit_events (identifier, created_at)
+    VALUES (p_identifier, v_now);
+
+    RETURN TRUE;
+END;
+$$;
+
+ALTER FUNCTION public.check_rate_limit(TEXT, INT, INT) OWNER TO postgres;
+
+-- 6. FUNCTION: public.submit_learner_registration()
+CREATE OR REPLACE FUNCTION public.submit_learner_registration(
+    p_full_name TEXT,
+    p_whatsapp_number TEXT,
+    p_profession TEXT,
+    p_ai_knowledge_level TEXT,
+    p_learning_goal TEXT,
+    p_privacy_consent BOOLEAN,
+    p_marketing_consent BOOLEAN DEFAULT FALSE,
+    p_source TEXT DEFAULT 'Direct Website',
+    p_utm_source TEXT DEFAULT NULL,
+    p_utm_campaign TEXT DEFAULT NULL,
+    p_client_ip_hash TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+    v_clean_phone TEXT;
+    v_new_id UUID;
+    v_new_token UUID;
+    v_rate_allowed BOOLEAN;
+BEGIN
+    -- Mandatory sliding-window rate limit verification (6 attempts per 600s)
+    -- Validates exactly 64 lowercase hexadecimal characters (HMAC SHA-256)
+    IF p_client_ip_hash IS NULL OR NOT (p_client_ip_hash ~ '^[0-9a-f]{64}$') THEN
+        RETURN pg_catalog.jsonb_build_object(
+            'success', false,
+            'error_code', 'INVALID_IDENTIFIER',
+            'error', 'Registration request verification failed.'
+        );
+    END IF;
+
+    v_rate_allowed := public.check_rate_limit(p_client_ip_hash, 6, 600);
+    IF NOT v_rate_allowed THEN
+        RETURN pg_catalog.jsonb_build_object(
+            'success', false, 
+            'error_code', 'RATE_LIMITED',
+            'error', 'Too many registration requests. Please wait a few minutes before trying again.'
+        );
+    END IF;
+
+    -- Explicit privacy consent requirement (No silent default)
+    IF p_privacy_consent IS NOT TRUE THEN
+        RETURN pg_catalog.jsonb_build_object(
+            'success', false, 
+            'error_code', 'CONSENT_REQUIRED',
+            'error', 'Explicit privacy consent is required to receive the free starter kit.'
+        );
+    END IF;
+
+    -- Explicit NULL and empty-string validation for full name
+    IF p_full_name IS NULL OR pg_catalog.btrim(p_full_name) = '' OR pg_catalog.length(pg_catalog.btrim(p_full_name)) < 2 THEN
+        RETURN pg_catalog.jsonb_build_object(
+            'success', false, 
+            'error_code', 'INVALID_NAME',
+            'error', 'Full name is required (minimum 2 characters).'
+        );
+    END IF;
+
+    -- Explicit NULL and empty-string validation for WhatsApp number
+    IF p_whatsapp_number IS NULL OR pg_catalog.btrim(p_whatsapp_number) = '' THEN
+        RETURN pg_catalog.jsonb_build_object(
+            'success', false, 
+            'error_code', 'INVALID_PHONE',
+            'error', 'WhatsApp phone number is required.'
+        );
+    END IF;
+
+    v_clean_phone := pg_catalog.regexp_replace(p_whatsapp_number, '[^0-9+]', '', 'g');
+    IF pg_catalog.length(v_clean_phone) < 8 OR pg_catalog.length(v_clean_phone) > 16 THEN
+        RETURN pg_catalog.jsonb_build_object(
+            'success', false, 
+            'error_code', 'INVALID_PHONE',
+            'error', 'Invalid WhatsApp phone number.'
+        );
+    END IF;
+
+    INSERT INTO public.learners (
+        full_name, whatsapp_number, profession, ai_knowledge_level,
+        learning_goal, privacy_consent, marketing_consent, source,
+        utm_source, utm_campaign, status
+    ) VALUES (
+        pg_catalog.btrim(p_full_name), v_clean_phone, p_profession, p_ai_knowledge_level,
+        pg_catalog.btrim(p_learning_goal), TRUE, COALESCE(p_marketing_consent, FALSE),
+        COALESCE(p_source, 'Direct Website'), p_utm_source, p_utm_campaign, 'new'
+    )
+    ON CONFLICT (whatsapp_number) DO NOTHING
+    RETURNING id, tracking_token INTO v_new_id, v_new_token;
+
+    IF v_new_id IS NULL THEN
+        RETURN pg_catalog.jsonb_build_object(
+            'success', true,
+            'is_duplicate', true,
+            'learner_id', NULL,
+            'tracking_token', NULL,
+            'full_name', pg_catalog.btrim(p_full_name),
+            'message', 'You are already registered! Access your free AI starter kit and channel below.'
+        );
+    END IF;
+
+    RETURN pg_catalog.jsonb_build_object(
+        'success', true,
+        'is_duplicate', false,
+        'learner_id', v_new_id,
+        'tracking_token', v_new_token,
+        'full_name', pg_catalog.btrim(p_full_name)
+    );
+END;
+$$;
+
+ALTER FUNCTION public.submit_learner_registration(TEXT, TEXT, TEXT, TEXT, TEXT, BOOLEAN, BOOLEAN, TEXT, TEXT, TEXT, TEXT) OWNER TO postgres;
+
+-- 7. FUNCTION: public.track_learner_click()
+CREATE OR REPLACE FUNCTION public.track_learner_click(
+    p_learner_id UUID,
+    p_tracking_token UUID,
+    p_resource_type TEXT
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+    IF p_resource_type NOT IN ('drive', 'whatsapp') THEN
+        RETURN FALSE;
+    END IF;
+
+    IF p_resource_type = 'drive' THEN
+        UPDATE public.learners
+        SET drive_accessed = TRUE,
+            status = CASE WHEN status = 'new' THEN 'starter_kit_accessed' ELSE status END,
+            updated_at = pg_catalog.now()
+        WHERE id = p_learner_id AND tracking_token = p_tracking_token;
+    ELSIF p_resource_type = 'whatsapp' THEN
+        UPDATE public.learners
+        SET whatsapp_channel_clicked = TRUE,
+            updated_at = pg_catalog.now()
+        WHERE id = p_learner_id AND tracking_token = p_tracking_token;
+    END IF;
+
+    RETURN FOUND;
+END;
+$$;
+
+ALTER FUNCTION public.track_learner_click(UUID, UUID, TEXT) OWNER TO postgres;
+
+-- 8. ROW LEVEL SECURITY (RLS) & REPEATABLE POLICIES
 ALTER TABLE public.learners ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rate_limit_events ENABLE ROW LEVEL SECURITY;
 
--- 4. Public registration policy: Anyone can INSERT a new registration
-CREATE POLICY "Allow public learner registration" 
+DROP POLICY IF EXISTS "Authorized admins can view learners" ON public.learners;
+DROP POLICY IF EXISTS "Authorized admins can update learners" ON public.learners;
+DROP POLICY IF EXISTS "Authorized admins can delete learners" ON public.learners;
+DROP POLICY IF EXISTS "Admins can view admin list" ON public.admin_users;
+
+CREATE POLICY "Authorized admins can view learners" 
 ON public.learners 
-FOR INSERT 
-WITH CHECK (true);
+FOR SELECT 
+TO authenticated 
+USING (public.is_admin());
 
--- 5. Public learner click tracking policy (allow updating click flags on their own row)
-CREATE POLICY "Allow updating click telemetry" 
+CREATE POLICY "Authorized admins can update learners" 
 ON public.learners 
 FOR UPDATE 
-USING (true) 
-WITH CHECK (true);
-
--- 6. Private Admin policy: Only authenticated admins can read and update all records
-CREATE POLICY "Allow admins full access" 
-ON public.learners 
-FOR ALL 
 TO authenticated 
-USING (auth.jwt() ->> 'email' IN ('mudaykiran.8801@gmail.com', 'admin@udaykiran.ai'))
-WITH CHECK (auth.jwt() ->> 'email' IN ('mudaykiran.8801@gmail.com', 'admin@udaykiran.ai'));
+USING (public.is_admin()) 
+WITH CHECK (public.is_admin());
+
+CREATE POLICY "Admins can view admin list" 
+ON public.admin_users 
+FOR SELECT 
+TO authenticated 
+USING (public.is_admin());
+
+-- ZERO DELETE POLICY: Deliberately omitted.
+
+-- 9. ACCESS PRIVILEGES & SECURITY HARDENING
+REVOKE ALL ON TABLE public.learners FROM PUBLIC, anon;
+REVOKE ALL ON TABLE public.admin_users FROM PUBLIC, anon;
+REVOKE ALL ON TABLE public.rate_limit_events FROM PUBLIC, anon, authenticated;
+
+-- Authenticated Role Privilege Hardening:
+-- Explicitly revoke ALL privileges on public.learners and public.admin_users from authenticated
+REVOKE ALL ON TABLE public.learners FROM authenticated;
+REVOKE ALL ON TABLE public.admin_users FROM authenticated;
+
+-- Grant selective authenticated permissions:
+-- 1. learners: SELECT on table, UPDATE strictly restricted to approved columns (status, admin_notes, updated_at)
+GRANT SELECT ON TABLE public.learners TO authenticated;
+GRANT UPDATE (status, admin_notes, updated_at) ON TABLE public.learners TO authenticated;
+
+-- 2. admin_users: SELECT only
+GRANT SELECT ON TABLE public.admin_users TO authenticated;
+
+GRANT ALL ON TABLE public.learners TO service_role;
+GRANT ALL ON TABLE public.admin_users TO service_role;
+GRANT ALL ON TABLE public.rate_limit_events TO service_role;
+
+REVOKE ALL ON FUNCTION public.is_admin() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated, service_role;
+
+REVOKE ALL ON FUNCTION public.check_rate_limit(TEXT, INT, INT) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.check_rate_limit(TEXT, INT, INT) TO service_role;
+
+REVOKE ALL ON FUNCTION public.submit_learner_registration FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.submit_learner_registration TO service_role;
+
+REVOKE ALL ON FUNCTION public.track_learner_click FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.track_learner_click TO service_role;
+
+COMMIT;
 `;

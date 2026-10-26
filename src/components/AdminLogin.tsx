@@ -1,16 +1,12 @@
 /**
  * AI FREEDOM WITH UDAY - Private Admin Authentication
- * Dedicated login portal for Uday Kiran with server-side role validation
- * and Supabase Auth integration.
+ * Authentic Supabase Auth login with server-side allowlist verification.
+ * Zero hardcoded passwords or mock bypasses.
  */
 
 import React, { useState } from 'react';
-import {
-  setAdminSession,
-  isSupabaseConfigured,
-  supabase,
-} from '../lib/supabase';
-import { Lock, ShieldCheck, ArrowLeft, KeyRound, Sparkles, AlertCircle } from 'lucide-react';
+import { adminLogin, isSupabaseConfigured } from '../lib/supabase';
+import { Lock, ArrowLeft, AlertCircle, ShieldCheck } from 'lucide-react';
 
 interface AdminLoginProps {
   onLoginSuccess: () => void;
@@ -20,7 +16,6 @@ interface AdminLoginProps {
 export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onNavigateHome }) => {
   const [email, setEmail] = useState<string>('mudaykiran.8801@gmail.com');
   const [password, setPassword] = useState<string>('');
-  const [rememberMe, setRememberMe] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -30,80 +25,23 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onNaviga
     setIsLoading(true);
 
     try {
-      // 1. If Supabase is configured, authenticate via Supabase Auth
-      if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
-
-        if (error) {
-          // If auth failed in Supabase, check if password matches admin emergency bypass passkey
-          if (password === 'udaykiran2026' || password === 'admin123') {
-            setAdminSession(
-              {
-                email: email.trim(),
-                name: 'Uday Kiran',
-                role: 'admin',
-                token: 'mock-session-' + Date.now(),
-                authenticatedAt: new Date().toISOString(),
-              },
-              rememberMe
-            );
-            onLoginSuccess();
-            return;
-          }
-          setErrorMessage(error.message || 'Invalid credentials.');
-          setIsLoading(false);
-          return;
-        }
-
-        if (data.session) {
-          setAdminSession(
-            {
-              email: data.user.email || email,
-              name: data.user.user_metadata?.full_name || 'Uday Kiran',
-              role: 'admin',
-              token: data.session.access_token,
-              authenticatedAt: new Date().toISOString(),
-            },
-            rememberMe
-          );
-          onLoginSuccess();
-          return;
-        }
-      }
-
-      // 2. Resilient Fallback Auth (for development & setup phase)
-      // Accepts Uday's registered email + standard master passkey
-      const isAuthorizedEmail =
-        email.trim().toLowerCase() === 'mudaykiran.8801@gmail.com' ||
-        email.trim().toLowerCase() === 'admin@udaykiran.ai';
-
-      if (!isAuthorizedEmail) {
-        setErrorMessage('Unauthorized account. Only designated admin emails can access this portal.');
+      if (!isSupabaseConfigured) {
+        setErrorMessage(
+          'Supabase credentials are not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment variables.'
+        );
         setIsLoading(false);
         return;
       }
 
-      // Default passkey for instant testing if Supabase Auth user not yet invited
-      if (password === 'udaykiran2026' || password === 'admin123' || password.length >= 6) {
-        setAdminSession(
-          {
-            email: email.trim(),
-            name: 'Uday Kiran',
-            role: 'admin',
-            token: 'admin-token-' + Date.now(),
-            authenticatedAt: new Date().toISOString(),
-          },
-          rememberMe
-        );
+      const result = await adminLogin(email, password);
+
+      if (result.success) {
         onLoginSuccess();
       } else {
-        setErrorMessage('Incorrect password. Use your Supabase password or master passkey.');
+        setErrorMessage(result.error || 'Authentication failed. Please check your credentials.');
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'Login error occurred.');
+      setErrorMessage(err.message || 'An unexpected authentication error occurred.');
     } finally {
       setIsLoading(false);
     }
@@ -134,7 +72,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onNaviga
             Private Admin Dashboard
           </h2>
           <p className="text-xs text-slate-400">
-            AI Freedom With Uday · Exclusive Management Console
+            AI Freedom With Uday · Verified Administrator Login
           </p>
         </div>
 
@@ -164,12 +102,9 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onNaviga
           </div>
 
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
-              <label>Admin Password / Passkey</label>
-              <span className="text-[11px] text-[#FFA726] font-normal">
-                Default: udaykiran2026
-              </span>
-            </div>
+            <label className="text-xs font-semibold text-slate-300 block">
+              Supabase Auth Password
+            </label>
             <input
               type="password"
               required
@@ -180,18 +115,13 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onNaviga
             />
           </div>
 
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="rounded text-[#FB6A21] focus:ring-0"
-              />
-              <span>Remember session</span>
-            </label>
-            <span className="text-[11px] font-mono text-emerald-400">
-              {isSupabaseConfigured ? 'Supabase Connected' : 'Local Storage Mode'}
+          <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+            <span className="flex items-center gap-1 text-slate-400">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Database Allowlist Enforced</span>
+            </span>
+            <span className={isSupabaseConfigured ? 'text-emerald-400' : 'text-amber-400'}>
+              {isSupabaseConfigured ? 'Supabase Auth Ready' : 'Credentials Missing'}
             </span>
           </div>
 
@@ -200,13 +130,13 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onNaviga
             disabled={isLoading}
             className="w-full py-3 rounded-xl font-display font-semibold text-xs text-white bg-gradient-to-r from-[#FFA726] via-[#FB6A21] to-[#D946EF] shadow-lg shadow-[#FB6A21]/20 hover:scale-[1.02] active:scale-98 transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {isLoading ? <span>Verifying Credentials...</span> : <span>Enter Admin Dashboard</span>}
+            {isLoading ? <span>Verifying via Supabase Auth...</span> : <span>Sign In as Admin</span>}
           </button>
         </form>
 
         <div className="text-center">
           <span className="text-[11px] font-mono text-[#D5B46B]">
-            Created by Uday Kiran · Row Level Security Enforced
+            Created by Uday Kiran · Row Level Security Protected
           </span>
         </div>
       </div>

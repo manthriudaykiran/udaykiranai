@@ -35,6 +35,14 @@ interface PublicLandingPageProps {
 const GOOGLE_DRIVE_LINK = 'https://drive.google.com/drive/folders/1rZWl9xEgizq2Hel3cfJ1xF6rgS6OvCFP';
 const WHATSAPP_CHANNEL_LINK = 'https://whatsapp.com/channel/0029VbDB3aBHwXb9V7ALGd0F';
 
+interface ConfirmedLearner {
+  learnerId?: string;
+  trackingToken?: string;
+  fullName: string;
+  isDuplicate: boolean;
+  message?: string;
+}
+
 export const PublicLandingPage: React.FC<PublicLandingPageProps> = ({ onNavigateToAdmin }) => {
   // Form State
   const [fullName, setFullName] = useState<string>('');
@@ -48,7 +56,7 @@ export const PublicLandingPage: React.FC<PublicLandingPageProps> = ({ onNavigate
   // Submission State
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [registeredLearner, setRegisteredLearner] = useState<Learner | null>(null);
+  const [registeredLearner, setRegisteredLearner] = useState<ConfirmedLearner | null>(null);
   const [hasDriveClicked, setHasDriveClicked] = useState<boolean>(false);
   const [hasChannelClicked, setHasChannelClicked] = useState<boolean>(false);
 
@@ -100,8 +108,14 @@ export const PublicLandingPage: React.FC<PublicLandingPageProps> = ({ onNavigate
       };
 
       const result = await registerLearner(payload);
-      if (result.success && result.learner) {
-        setRegisteredLearner(result.learner);
+      if (result.success) {
+        setRegisteredLearner({
+          learnerId: result.learnerId,
+          trackingToken: result.trackingToken,
+          fullName: result.fullName || fullName.trim(),
+          isDuplicate: Boolean(result.isDuplicate),
+          message: result.message,
+        });
         // Scroll smoothly to success resources card
         window.scrollTo({ top: 350, behavior: 'smooth' });
       } else {
@@ -115,16 +129,16 @@ export const PublicLandingPage: React.FC<PublicLandingPageProps> = ({ onNavigate
   };
 
   const handleDriveClick = () => {
-    if (registeredLearner) {
-      trackResourceClick(registeredLearner.id, 'drive');
+    if (registeredLearner?.learnerId && registeredLearner?.trackingToken) {
+      trackResourceClick(registeredLearner.learnerId, registeredLearner.trackingToken, 'drive');
     }
     setHasDriveClicked(true);
     window.open(GOOGLE_DRIVE_LINK, '_blank', 'noopener,noreferrer');
   };
 
   const handleChannelClick = () => {
-    if (registeredLearner) {
-      trackResourceClick(registeredLearner.id, 'whatsapp');
+    if (registeredLearner?.learnerId && registeredLearner?.trackingToken) {
+      trackResourceClick(registeredLearner.learnerId, registeredLearner.trackingToken, 'whatsapp');
     }
     setHasChannelClicked(true);
     window.open(WHATSAPP_CHANNEL_LINK, '_blank', 'noopener,noreferrer');
@@ -225,10 +239,13 @@ export const PublicLandingPage: React.FC<PublicLandingPageProps> = ({ onNavigate
                 <CheckCircle2 className="w-6 h-6" />
               </div>
               <h3 className="text-2xl font-display font-bold text-white">
-                Registration Successful, {registeredLearner.full_name}!
+                {registeredLearner.isDuplicate
+                  ? `Welcome Back, ${registeredLearner.fullName}!`
+                  : `Registration Successful, ${registeredLearner.fullName}!`}
               </h3>
               <p className="text-sm text-slate-300">
-                Your AI Starter Kit is ready below. Access the resources immediately and join the WhatsApp channel for live updates.
+                {registeredLearner.message ||
+                  'Your AI Starter Kit is ready below. Access the resources immediately and join the WhatsApp channel for live updates.'}
               </p>
             </div>
 
