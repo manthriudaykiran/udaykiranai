@@ -14,7 +14,7 @@ interface AdminLoginProps {
 }
 
 export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onNavigateHome }) => {
-  const [email, setEmail] = useState<string>('mudaykiran.8801@gmail.com');
+  const [email, setEmail] = useState<string>('m.udaykiran.8801@gmail.com');
   const [password, setPassword] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -96,7 +96,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onNaviga
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="mudaykiran.8801@gmail.com"
+              placeholder="m.udaykiran.8801@gmail.com"
               className="w-full px-4 py-2.5 rounded-xl bg-[#071426] border border-white/10 text-white text-xs font-mono focus:outline-none focus:border-[#FFA726] transition-colors"
             />
           </div>

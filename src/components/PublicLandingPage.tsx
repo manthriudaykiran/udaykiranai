@@ -19,6 +19,7 @@ import {
   Sparkles,
   Zap,
   BookOpen,
+  Calendar,
   Workflow,
   Compass,
   Rocket,
@@ -42,6 +43,7 @@ interface PublicLandingPageProps {
 const GOOGLE_DRIVE_LINK = 'https://drive.google.com/drive/folders/1rZWl9xEgizq2Hel3cfJ1xF6rgS6OvCFP';
 const WHATSAPP_CHANNEL_LINK = 'https://whatsapp.com/channel/0029VbDB3aBHwXb9V7ALGd0F';
 const TELEGRAM_COMMUNITY_LINK = 'https://t.me/practicalaiwithudaykiran';
+const CALL_BOOKING_LINK = 'https://academy.udaykiranmanthri.com/web/lite/events/6ae595f7f678ce8be54a8d00';
 
 interface ConfirmedLearner {
   learnerId?: string;
@@ -252,7 +254,7 @@ export const PublicLandingPage: React.FC<PublicLandingPageProps> = () => {
       {/* 3. SUCCESS CARD (Shown immediately if already registered) */}
       {registeredLearner && (
         <section className="px-6 lg:px-12 py-12 bg-[#0C172E] border-b border-[#FFA726]/30">
-          <div className="max-w-5xl mx-auto p-8 rounded-3xl bg-[#111827] border border-[#FFA726]/40 shadow-2xl space-y-6">
+          <div className="max-w-6xl mx-auto p-6 sm:p-8 rounded-3xl bg-[#111827] border border-[#FFA726]/40 shadow-2xl space-y-6">
             <div className="text-center space-y-2">
               <div className="w-12 h-12 mx-auto rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
                 <CheckCircle2 className="w-6 h-6" />
@@ -264,14 +266,14 @@ export const PublicLandingPage: React.FC<PublicLandingPageProps> = () => {
               </h3>
               <p className="text-sm text-slate-300">
                 {registeredLearner.message ||
-                  'Your AI Starter Kit is ready below. Access the resources immediately and join the Telegram and WhatsApp communities for live updates.'}
+                  'Your AI Starter Kit is ready below. Access your resources, book your free call, and join the community.'}
               </p>
             </div>
 
-            {/* Three Resource Cards: 01 Telegram, 02 WhatsApp, 03 Google Drive */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+            {/* Four Resource Cards: 01 Telegram, 02 WhatsApp, 03 Call Booking, 04 Google Drive */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
               {/* Resource 1: Practical AI Telegram Community */}
-              <div className="p-6 rounded-2xl bg-[#071426] border border-white/10 flex flex-col justify-between space-y-4 hover:border-[#229ED9]/50 transition-colors">
+              <div className="p-5 sm:p-6 rounded-2xl bg-[#071426] border border-white/10 flex flex-col justify-between space-y-4 hover:border-[#229ED9]/50 transition-colors">
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-mono font-bold text-[#229ED9] uppercase">
@@ -281,7 +283,7 @@ export const PublicLandingPage: React.FC<PublicLandingPageProps> = () => {
                       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.19-.08-.05-.19-.02-.27 0-.12.03-1.99 1.27-5.63 3.73-.53.36-1.01.54-1.44.53-.47-.01-1.38-.27-2.06-.49-.83-.27-1.49-.42-1.43-.88.03-.24.37-.49 1.02-.75 4-1.74 6.67-2.88 8.01-3.44 3.81-1.59 4.6-1.87 5.12-1.88.11 0 .37.03.53.17.14.12.18.28.2.45-.01.06.01.23 0 .33z"/>
                     </svg>
                   </div>
-                  <h4 className="text-lg font-display font-bold text-white mb-1">
+                  <h4 className="text-base sm:text-lg font-display font-bold text-white mb-1">
                     Practical AI Telegram Community
                   </h4>
                   <p className="text-xs text-slate-400 leading-relaxed">
@@ -293,15 +295,15 @@ export const PublicLandingPage: React.FC<PublicLandingPageProps> = () => {
                   href={TELEGRAM_COMMUNITY_LINK}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full py-3 rounded-xl font-display font-semibold text-xs text-white bg-[#229ED9] hover:bg-[#1d8ec4] transition-colors flex items-center justify-center gap-2 shadow-md"
+                  className="w-full py-3 px-2 rounded-xl font-display font-semibold text-xs text-white bg-[#229ED9] hover:bg-[#1d8ec4] transition-colors flex items-center justify-center gap-1.5 shadow-md"
                 >
                   <span>Join Telegram Community</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
+                  <ExternalLink className="w-3.5 h-3.5 shrink-0" />
                 </a>
               </div>
 
               {/* Resource 2: Official WhatsApp Channel */}
-              <div className="p-6 rounded-2xl bg-[#071426] border border-white/10 flex flex-col justify-between space-y-4 hover:border-emerald-500/50 transition-colors">
+              <div className="p-5 sm:p-6 rounded-2xl bg-[#071426] border border-white/10 flex flex-col justify-between space-y-4 hover:border-emerald-500/50 transition-colors">
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-mono font-bold text-emerald-400 uppercase">
@@ -309,7 +311,7 @@ export const PublicLandingPage: React.FC<PublicLandingPageProps> = () => {
                     </span>
                     <MessageCircle className="w-4 h-4 text-emerald-400" />
                   </div>
-                  <h4 className="text-lg font-display font-bold text-white mb-1">
+                  <h4 className="text-base sm:text-lg font-display font-bold text-white mb-1">
                     Official WhatsApp Channel
                   </h4>
                   <p className="text-xs text-slate-400 leading-relaxed">
@@ -319,23 +321,51 @@ export const PublicLandingPage: React.FC<PublicLandingPageProps> = () => {
 
                 <button
                   onClick={handleChannelClick}
-                  className="w-full py-3 rounded-xl font-display font-semibold text-xs text-white bg-emerald-600 hover:bg-emerald-500 transition-colors flex items-center justify-center gap-2 shadow-md"
+                  className="w-full py-3 px-2 rounded-xl font-display font-semibold text-xs text-white bg-emerald-600 hover:bg-emerald-500 transition-colors flex items-center justify-center gap-1.5 shadow-md"
                 >
                   <span>Join WhatsApp Channel</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
+                  <ExternalLink className="w-3.5 h-3.5 shrink-0" />
                 </button>
               </div>
 
-              {/* Resource 3: Free AI Starter Kit (Google Drive) */}
-              <div className="p-6 rounded-2xl bg-[#071426] border border-white/10 flex flex-col justify-between space-y-4 hover:border-[#FFA726]/50 transition-colors">
+              {/* Resource 3: Free 1-to-1 Call Booking */}
+              <div className="p-5 sm:p-6 rounded-2xl bg-[#071426] border border-[#EA650C]/50 hover:border-[#EA650C] hover:shadow-lg hover:shadow-[#EA650C]/15 flex flex-col justify-between space-y-4 transition-all">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-mono font-bold text-[#EA650C] uppercase tracking-wide">
+                      Resource 03
+                    </span>
+                    <Calendar className="w-4 h-4 text-[#EA650C]" />
+                  </div>
+                  <h4 className="text-base sm:text-lg font-display font-bold text-white mb-1">
+                    Free 1-to-1 Call Booking
+                  </h4>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Have questions about your AI learning journey? Book a free personal call to discuss your goals, challenges, and practical next steps.
+                  </p>
+                </div>
+
+                <a
+                  href={CALL_BOOKING_LINK}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3 px-2 rounded-xl font-display font-semibold text-xs text-white bg-[#EA650C] hover:bg-[#d55806] transition-colors flex items-center justify-center gap-1.5 shadow-md shadow-[#EA650C]/25"
+                >
+                  <span>Book Your Free 1-to-1 Call</span>
+                  <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                </a>
+              </div>
+
+              {/* Resource 4: Free AI Starter Kit (Google Drive) */}
+              <div className="p-5 sm:p-6 rounded-2xl bg-[#071426] border border-white/10 flex flex-col justify-between space-y-4 hover:border-[#FFA726]/50 transition-colors">
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-mono font-bold text-[#FFA726] uppercase">
-                      Resource 03
+                      Resource 04
                     </span>
                     <Download className="w-4 h-4 text-slate-400" />
                   </div>
-                  <h4 className="text-lg font-display font-bold text-white mb-1">
+                  <h4 className="text-base sm:text-lg font-display font-bold text-white mb-1">
                     Free AI Starter Kit (Google Drive)
                   </h4>
                   <p className="text-xs text-slate-400 leading-relaxed">
@@ -345,10 +375,10 @@ export const PublicLandingPage: React.FC<PublicLandingPageProps> = () => {
 
                 <button
                   onClick={handleDriveClick}
-                  className="w-full py-3 rounded-xl font-display font-semibold text-xs text-white bg-gradient-to-r from-[#FFA726] to-[#FB6A21] hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-md"
+                  className="w-full py-3 px-2 rounded-xl font-display font-semibold text-xs text-white bg-gradient-to-r from-[#FFA726] to-[#FB6A21] hover:opacity-90 transition-opacity flex items-center justify-center gap-1.5 shadow-md"
                 >
                   <span>Open Google Drive Folder</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
+                  <ExternalLink className="w-3.5 h-3.5 shrink-0" />
                 </button>
               </div>
             </div>
