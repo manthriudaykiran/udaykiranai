@@ -228,9 +228,15 @@ export const PublicLandingPage: React.FC<PublicLandingPageProps> = () => {
               <span>Get My FREE AI Starter Kit</span>
               <ArrowRight className="w-4 h-4" />
             </button>
-            <span className="text-xs text-slate-400 font-mono block sm:inline">
-              Instant Google Drive + WhatsApp Channel Access
-            </span>
+            <div className="text-xs text-slate-300/90 font-medium flex flex-wrap items-center justify-center gap-x-2 gap-y-1 max-w-md">
+              <span className="whitespace-nowrap">Free 1:1 AI Clarity Call</span>
+              <span className="text-slate-600 select-none" aria-hidden="true">•</span>
+              <span className="whitespace-nowrap">Telegram Channel</span>
+              <span className="text-slate-600 select-none" aria-hidden="true">•</span>
+              <span className="whitespace-nowrap">WhatsApp Channel</span>
+              <span className="text-slate-600 select-none" aria-hidden="true">•</span>
+              <span className="whitespace-nowrap">Free Resources</span>
+            </div>
           </div>
 
           {/* Short Trust & Value Indicators */}
